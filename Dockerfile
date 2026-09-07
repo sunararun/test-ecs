@@ -3,6 +3,7 @@ FROM eclipse-temurin:17-jre-alpine
 # Step 2: Set the working directory inside the container
 WORKDIR /app
 
+
 # Step 3: Copy your app's JAR file into the container
 COPY target/my-app.jar app.jar
 
