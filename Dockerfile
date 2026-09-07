@@ -1,15 +1,16 @@
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
 
-# Jenkins will pass the exact file path here
-ARG JAR_FILE 
-RUN if [ -z "$JAR_FILE" ]; then echo "JAR_FILE arg is required" && exit 1; fi
+# Jenkins passes the file path (e.g., target\myapp-1.0.jar)
+ARG JAR_FILE
 
-# Copy the file and preserve its original name in the container
+# Copy the file into the container's current working directory (/app)
 COPY ${JAR_FILE} ./
 
-# Store the filename in an ENV variable so ENTRYPOINT can read it at runtime
-ENV RUN_JAR=${JAR_FILE}
+# Extract just the filename (e.g., myapp-1.0.jar) and store it in an ENV variable
+# This converts Windows backslashes (\) to forward slashes (/) so Linux can parse it
+RUN export CLEAN_PATH=$(echo "${JAR_FILE}" | tr '\\' '/') && \
+    echo "JAR_NAME=$(basename $CLEAN_PATH)" >> /etc/environment
 
-# Use shell form for ENTRYPOINT to properly expand the ENV variable
-ENTRYPOINT java -jar ${RUN_JAR}
+# Use shell form for ENTRYPOINT to load the saved environment variable
+ENTRYPOINT . /etc/environment && java -jar "$JAR_NAME"
