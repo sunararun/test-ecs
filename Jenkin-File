@@ -18,7 +18,7 @@ pipeline {
         // Fixed URL formatting for the repository URI
         REPOSITORY_URI  = "${ECR_REGISTRY}/${IMAGE_NAME}"
          ECS_EXECUTION_ROLE_ARN = 'arn:aws:iam::501591550267:role/ecsTaskExecutionRole' // Replace with your exact role ARN
-    }
+    } // <-- Correctly closes the environment block
 
     stages {
         stage('Checkout') {
@@ -30,7 +30,7 @@ pipeline {
                     userRemoteConfigs: [[url: 'https://bitbucket1584@bitbucket.org/awseb1584/test-ecs.git']]
                 )
             }
-        }
+        } // <-- Correctly closes the CHECKOUT stage
 
         stage('Build Docker Image') {
             steps {
@@ -39,7 +39,8 @@ pipeline {
                 bat "docker tag %IMAGE_NAME%:%IMAGE_TAG% %ECR_REGISTRY%/%IMAGE_NAME%:%IMAGE_TAG%"
                 echo "Docker image built successfully: %IMAGE_NAME%:%IMAGE_TAG%"
             }
-        }
+        } // <-- Correctly closes the BUILD DOCKER IMAGE stage
+
 
         stage('Authorize & Push to AWS ECR') {
             steps {
@@ -54,7 +55,8 @@ pipeline {
                     bat "docker push %ECR_REGISTRY%/%IMAGE_NAME%:%IMAGE_TAG%"
                 }
             }
-        }
+        } // <-- Correctly closes the AUTHORIZE & PUSH TO AWS ECR stage
+
 
       stage('Deploy to AWS ECS') {
             steps {
@@ -199,7 +201,7 @@ pipeline {
                     }
                 }
             }
-        } // <-- Correctly closes the CLEAN UP PREVIOUS TASK DEFINITIONS stage
+        } // <-- Correctly closes the CLEAN UP PREVIOUS TASK DEFINITIONS & TASKS stage
 
 
     } // <-- Correctly closes the STAGES block
@@ -211,5 +213,6 @@ pipeline {
         failure {
             echo 'Pipeline failed. Check the console logs for issues.'
         }
-    }
+    } // <-- Correctly closes the POST block
+
 } // <-- Correctly closes the PIPELINE block
