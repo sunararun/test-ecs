@@ -1,0 +1,131 @@
+pipeline {
+    agent any
+
+    environment {
+        // AWS ECR Variables
+        AWS_ACCOUNT_ID  = '501591550267'
+        IMAGE_NAME      = 'springboot-app'
+        IMAGE_TAG       = "${env.BUILD_NUMBER}"
+
+        ECR_REGISTRY    = '501591550267.dkr.ecr.ap-south-1.amazonaws.com'
+        AWS_REGION      = 'ap-south-1'
+
+        // ECS Deployment Variables
+        ECS_CLUSTER     = 'my-test-cluster'
+        ECS_SERVICE     = 'my-test-task-family-service'
+        ECS_TASK_FAMILY = 'my-test-task-family'
+
+        // Fixed URL formatting for the repository URI
+        REPOSITORY_URI  = "${ECR_REGISTRY}/${IMAGE_NAME}"
+         ECS_EXECUTION_ROLE_ARN = 'arn:aws:iam::501591550267:role/ecsTaskExecutionRole' // Replace with your exact role ARN
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Fixed missing closing parenthesis at the very end of checkout
+                checkout scmGit(
+                    branches: [[name: '*/main']],
+                    extensions: [],
+                    userRemoteConfigs: [[url: 'https://bitbucket1584@bitbucket.org/awseb1584/test-ecs.git']]
+                )
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                // Removed duplicate build steps to optimize time
+                bat "docker build -t %IMAGE_NAME%:%IMAGE_TAG% ."
+                bat "docker tag %IMAGE_NAME%:%IMAGE_TAG% %ECR_REGISTRY%/%IMAGE_NAME%:%IMAGE_TAG%"
+                echo "Docker image built successfully: %IMAGE_NAME%:%IMAGE_TAG%"
+            }
+        }
+
+        stage('Authorize & Push to AWS ECR') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws config',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    echo "Logging into AWS ECR..."
+                    bat "aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_REGISTRY%"
+                    bat "docker push %ECR_REGISTRY%/%IMAGE_NAME%:%IMAGE_TAG%"
+                }
+            }
+        }
+
+      stage('Deploy to AWS ECS') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws config',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    script {
+                        // 1. Fetch the task definition and filter out wrapper fields
+                        powershell 'aws ecs describe-task-definition --task-definition $env:ECS_TASK_FAMILY --query taskDefinition --region $env:AWS_REGION > task-def.json'
+
+                        // Pass the exact target image from Jenkins environment variables safely into PowerShell
+                        def newImageTarget = "${env.REPOSITORY_URI}:${env.IMAGE_TAG}"
+
+                        // 2. Process JSON, strip read-only metadata, and bind the clean new image tag
+                        powershell '''
+                            $taskDef = Get-Content task-def.json -Raw | ConvertFrom-Json
+
+                            # Remove ECS-managed read-only fields
+                            $propertiesToRemove = @('taskDefinitionArn', 'revision', 'status', 'requiresAttributes', 'compatibilities', 'registeredAt', 'registeredBy')
+                            foreach ($prop in $propertiesToRemove) {
+                                $taskDef.PSObject.Properties.Remove($prop)
+                            }
+
+                            # Inject the clean, explicit new tag constructed by Jenkins
+                            $taskDef.containerDefinitions[0].image = "''' + newImageTarget + '''"
+
+                            # Convert back to clean single-line JSON
+                            $cleanJson = $taskDef | ConvertTo-Json -Depth 100 -Compress
+
+                            # Write file directly as raw ASCII bytes to eliminate BOM signatures entirely
+                            [System.IO.File]::WriteAllText("$pwd\\new-task-def.json", $cleanJson, [System.Text.Encoding]::ASCII)
+                        '''
+
+                        // AUDIT STEP: Verify that the clean file does not contain "@sha256"
+                        echo "--- AUDITING GENERATED TASK DEFINITION ---"
+                        powershell "Get-Content new-task-def.json"
+
+                        // 3. Register the new definition file
+                        powershell 'aws ecs register-task-definition --cli-input-json file://new-task-def.json --region $env:AWS_REGION > registered-task.json'
+
+                        def newRevision = powershell(
+                            script: '(Get-Content registered-task.json | ConvertFrom-Json).taskDefinition.revision',
+                            returnStdout: true
+                        ).trim()
+
+                        // 4. Force deployment of the service using the newly generated numeric revision
+                        powershell """
+                            aws ecs update-service `
+                                --cluster \$env:ECS_CLUSTER `
+                                --service \$env:ECS_SERVICE `
+                                --task-definition "\${env:ECS_TASK_FAMILY}:${newRevision}" `
+                                --force-new-deployment `
+                                --region \$env:AWS_REGION
+                        """
+                    }
+                }
+            }
+        }
+
+
+    } // <-- Correctly closes the STAGES block
+
+    post { // <-- Correctly placed as a direct child of the pipeline block
+        success {
+            echo 'Pipeline completed successfully! Application is up and running.'
+        }
+        failure {
+            echo 'Pipeline failed. Check the console logs for issues.'
+        }
+    }
+} // <-- Correctly closes the PIPELINE block
