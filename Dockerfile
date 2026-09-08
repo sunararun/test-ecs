@@ -12,4 +12,4 @@ COPY ${JAR_PATH} ./
 ENV RUN_JAR=${JAR_NAME}
 
 # Use the shell form of ENTRYPOINT to dynamically resolve the variable name
-ENTRYPOINT java -jar ${RUN_JAR}
+ENTRYPOINT exec java -jar ${RUN_JAR}
