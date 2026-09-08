@@ -117,7 +117,7 @@ pipeline {
             }
         } // <-- Correctly closes the DEPLOY TO AWS ECS stage
 
-          stage('Clean Up Previous Task Definitions') {
+           stage('Clean Up Previous Task Definitions & Tasks') {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
@@ -126,7 +126,7 @@ pipeline {
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
                     script {
-                        echo "Deregistering older active task definitions..."
+                        echo "Starting purge of older task definitions and stopping old running tasks..."
 
                         powershell '''
                             # 1. Fetch all ACTIVE task definition ARNs for this family
@@ -137,31 +137,69 @@ pipeline {
                                 --output json `
                                 --region $env:AWS_REGION | ConvertFrom-Json
 
-                            # 2. Loop through and deregister them (except the one currently running, if desired)
-                            # To be safe, this script blocks active ones that aren't the absolute newest.
                             if ($activeArns -and $activeArns.Count -gt 1) {
                                 # Sort them so the highest/newest revision number is last
                                 $sortedArns = $activeArns | Sort-Object
 
-                                # Remove the very last one (the newest one we just deployed) from the cleanup list
+                                # Protect the newest deployed version
+                                $newestArn = $sortedArns[-1].Trim()
                                 $arnsToDeregister = $sortedArns | Select-Object -First ($sortedArns.Count - 1)
 
-                                echo "Found older active task definition(s). Deregistering..."
+                                echo "Keeping current active version intact: $newestArn"
 
+                                # 2. Fetch all currently RUNNING tasks in the cluster for this family
+                                $runningTasks = aws ecs list-tasks `
+                                    --cluster $env:ECS_CLUSTER `
+                                    --family $env:ECS_TASK_FAMILY `
+                                    --desired-status RUNNING `
+                                    --query "taskArns" `
+                                    --output json `
+                                    --region $env:AWS_REGION | ConvertFrom-Json
+
+                                # 3. Map out which running tasks belong to older definitions and stop them
+                                if ($runningTasks -and $runningTasks.Count -gt 0) {
+                                    echo "Analyzing $($runningTasks.Count) running tasks..."
+
+                                    foreach ($taskArn in $runningTasks) {
+                                        # Query task details as clean JSON to safely parse object paths
+                                        $taskJson = aws ecs describe-tasks `
+                                            --cluster $env:ECS_CLUSTER `
+                                            --tasks $taskArn `
+                                            --region $env:AWS_REGION | ConvertFrom-Json
+
+                                        $taskDefArnOfRunningTask = $taskJson.tasks[0].taskDefinitionArn.Trim()
+
+                                        # If the task definition of this running task is NOT the newest one, stop it
+                                        if ($taskDefArnOfRunningTask -ne $newestArn) {
+                                            echo "Found running container on old revision ($taskDefArnOfRunningTask). Stopping Task: $taskArn"
+
+                                            aws ecs stop-task `
+                                                --cluster $env:ECS_CLUSTER `
+                                                --task $taskArn `
+                                                --reason "Jenkins pipeline triggered rolling rotation cleanup" `
+                                                --region $env:AWS_REGION
+                                        }
+                                    }
+                                } else {
+                                    echo "No running tasks found in the cluster to evaluate."
+                                }
+
+                                # 4. Deregister the older task definition versions
                                 foreach ($arn in $arnsToDeregister) {
-                                    echo "Deregistering: $arn"
-                                    aws ecs deregister-task-definition --task-definition $arn --region $env:AWS_REGION
+                                    $cleanArn = $arn.Trim()
+                                    echo "Deregistering older definition: $cleanArn"
+                                    aws ecs deregister-task-definition --task-definition $cleanArn --region $env:AWS_REGION
                                 }
 
                                 echo "Cleanup complete."
                             } else {
-                                echo "No older active task definitions found to clean up."
+                                echo "No older active task definitions found to clean up or rotate."
                             }
                         '''
                     }
                 }
             }
-        }// <-- Correctly closes the CLEAN UP PREVIOUS TASK DEFINITIONS stage
+        } // <-- Correctly closes the CLEAN UP PREVIOUS TASK DEFINITIONS stage
 
 
     } // <-- Correctly closes the STAGES block
