@@ -17,6 +17,6 @@ RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
 # Copy the generated JAR from the build stage
-COPY --from=build /app/target/*.jar ./app.jar
+COPY --from=build /app/target/*.jar ./first-ecs.jar
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "first-ecs.jar"]
