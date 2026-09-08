@@ -12,7 +12,7 @@ pipeline {
 
         // ECS Deployment Variables
         ECS_CLUSTER     = 'my-test-cluster'
-        ECS_SERVICE     = 'my-test-task-family-service'
+        ECS_SERVICE     = 'my-test-task-family-service-1'
         ECS_TASK_FAMILY = 'my-test-task-family'
 
         // Fixed URL formatting for the repository URI
@@ -115,7 +115,53 @@ pipeline {
                     }
                 }
             }
-        }
+        } // <-- Correctly closes the DEPLOY TO AWS ECS stage
+
+          stage('Clean Up Previous Task Definitions') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws config',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    script {
+                        echo "Deregistering older active task definitions..."
+
+                        powershell '''
+                            # 1. Fetch all ACTIVE task definition ARNs for this family
+                            $activeArns = aws ecs list-task-definitions `
+                                --family-prefix $env:ECS_TASK_FAMILY `
+                                --status ACTIVE `
+                                --query "taskDefinitionArns" `
+                                --output json `
+                                --region $env:AWS_REGION | ConvertFrom-Json
+
+                            # 2. Loop through and deregister them (except the one currently running, if desired)
+                            # To be safe, this script blocks active ones that aren't the absolute newest.
+                            if ($activeArns -and $activeArns.Count -gt 1) {
+                                # Sort them so the highest/newest revision number is last
+                                $sortedArns = $activeArns | Sort-Object
+
+                                # Remove the very last one (the newest one we just deployed) from the cleanup list
+                                $arnsToDeregister = $sortedArns | Select-Object -First ($sortedArns.Count - 1)
+
+                                echo "Found older active task definition(s). Deregistering..."
+
+                                foreach ($arn in $arnsToDeregister) {
+                                    echo "Deregistering: $arn"
+                                    aws ecs deregister-task-definition --task-definition $arn --region $env:AWS_REGION
+                                }
+
+                                echo "Cleanup complete."
+                            } else {
+                                echo "No older active task definitions found to clean up."
+                            }
+                        '''
+                    }
+                }
+            }
+        }// <-- Correctly closes the CLEAN UP PREVIOUS TASK DEFINITIONS stage
 
 
     } // <-- Correctly closes the STAGES block
