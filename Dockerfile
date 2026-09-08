@@ -2,19 +2,21 @@
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copy the pom.xml and source code from your directory
 COPY pom.xml .
 COPY src ./src
 
-# Package the application (skipping tests to speed up the process)
 RUN mvn clean package -DskipTests
 
-# === Stage 2: Run the application ===
-FROM eclipse-temurin:17-jdk
+# === Stage 2: Run the application (Optimised for Size) ===
+# Using a slim JRE Alpine base image instead of a full JDK
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Copy the generated heavy/fat JAR directly from the build stage
+# Create a non-root user for better ECS security
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring:spring
+
+# Copy the generated JAR from the build stage
 COPY --from=build /app/target/*.jar ./app.jar
 
-# Safe entrypoint
 ENTRYPOINT ["java", "-jar", "app.jar"]
