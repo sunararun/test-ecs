@@ -12,6 +12,6 @@ public class ECSController {
 
     @GetMapping("/getAll")
     public List<String> getAll(){
-        return List.of("Apple","Ball","Cat","Dog","Element");
+        return List.of("Arun","Bablu","Catrin","Dinesh","Emelly");
     }
 }
