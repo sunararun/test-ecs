@@ -1,4 +1,4 @@
-def call(String region, String registry, String imageName, String imageTag, String credentialsId = 'aws config') {
+def call(String region, String registry, String imageName, String imageTag, String credentialsId) {
     stage('Authorize & Push to AWS ECR') {
         withCredentials([[
                                  $class: 'AmazonWebServicesCredentialsBinding',
