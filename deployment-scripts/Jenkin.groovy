@@ -7,6 +7,17 @@ pipeline {
     } // <-- environment
 
     stages {
+        stage('Checkout') {
+            steps {
+                // Fixed missing closing parenthesis at the very end of checkout
+                checkout scmGit(
+                        branches: [[name: '*/main']],
+                        extensions: [],
+                        userRemoteConfigs: [[url: 'https://bitbucket1584@bitbucket.org/awseb1584/test-ecs.git']]
+                )
+            }
+        } // <-- Checkout stage
+
         stage('Checkout Code') {
             steps {
                 checkout scm
