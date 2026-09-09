@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        S3_BUCKET = 'my-springboot-env-bucket'
-        AWS_REGION = 'us-east-1'
+        S3_BUCKET = 'elasticbeanstalk-ap-south-1-501591550267'
+        AWS_REGION = 'ap-south-1'
     } // <-- environment
 
     stages {
