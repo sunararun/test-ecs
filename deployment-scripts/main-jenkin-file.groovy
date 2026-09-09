@@ -34,7 +34,25 @@ pipeline {
                 )
             }
         } // <-- This is the end of the Checkout Code stage // <-- stage('Checkout')
+        stage('Search .env File') {
+            steps {
+                script {
+                    // Load and execute from the deployment-scripts folder
+                    def searchScript = load 'deployment-scripts/search-env-file.groovy'
+                    searchScript()
+                }
+            }
+        } // <-- This is the end of the Search .env File stage
 
+        stage('Upload to S3') {
+            steps {
+                script {
+                    // Load and execute from the deployment-scripts folder
+                    def uploadScript = load 'deployment-scripts/upload-s3-bucket.groovy'
+                    uploadScript(env.S3_BUCKET, env.AWS_REGION)
+                }
+            }
+        } // <-- Correctly closes the CLEAN UP PREVIOUS TASK DEFINITIONS & TASKS stage
         stage('Build Docker Image') {
             steps {
                 script {
