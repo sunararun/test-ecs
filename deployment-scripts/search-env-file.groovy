@@ -1,15 +1,18 @@
 def call() {
-    echo "Searching for any .env file in the env/ directory..."
+    echo "Searching for any .env file in the env\\ directory using Windows Batch..."
 
-    // Find files matching the pattern. This returns an array.
-    def files = findFiles(glob: 'env/*.env')
+    // Check if any file matching *.env exists. returnStatus: true prevents Jenkins from failing if not found.
+    def fileCheck = bat(script: "dir /b env\\*.env", returnStatus: true)
 
-    // Check if the array contains at least one file
-    if (files.length > 0) {
-        // Print the specific file name that was found (e.g., dev.env)
-        echo "Success: Found environment file -> ${files[0].path}"
+    if (fileCheck == 0) {
+        // Fetch the file name cleanly
+        def matchedFiles = bat(script: "dir /b env\\*.env", returnStdout: true).trim()
+        // Strip out the Jenkins execution text that bat command outputs
+        def cleanFileName = matchedFiles.substring(matchedFiles.lastIndexOf('\n') + 1).trim()
+
+        echo "Success: Found environment file -> env/${cleanFileName}"
     } else {
-        error "Error: No .env file matching *.env was found in the env/ directory!"
+        error "Error: No file matching *.env was found in the env\\ directory!"
     }
 }
 return this
