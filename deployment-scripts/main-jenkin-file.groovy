@@ -8,6 +8,7 @@ pipeline {
         AWS_CREDS_ID = 'aws config'
         IMAGE_NAME      = 'springboot-app'
         IMAGE_TAG       = "${env.BUILD_NUMBER}"
+        S3_BUCKET = 'elasticbeanstalk-ap-south-1-501591550267'
 
         ECR_REGISTRY    = '501591550267.dkr.ecr.ap-south-1.amazonaws.com'
         AWS_REGION      = 'ap-south-1'
