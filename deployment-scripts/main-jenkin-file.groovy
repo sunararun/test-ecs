@@ -23,12 +23,18 @@ pipeline {
     } // <-- environment
 
     stages {
-        stage('Checkout') {
-            steps {
-                cleanWs()
-                checkout scm
+        stages {
+            stage('Checkout Code') {
+                steps {
+                    // This explicitly pulls your repo down into the workspace
+                    checkout scmGit(
+                            branches: [[name: '*/main']],
+                            extensions: [],
+                            userRemoteConfigs: [[url: 'https://bitbucket1584@bitbucket.org/awseb1584/test-ecs.git']]
+                    )
+                }
             }
-        } // <-- stage('Checkout')
+        }// <-- This is the end of the Checkout Code stage // <-- stage('Checkout') // <-- stage('Checkout')
 
         stage('Build Docker Image') {
             steps {
