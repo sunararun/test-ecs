@@ -5,6 +5,7 @@ pipeline {
         // Centralized Configuration Management
         // AWS ECR Variables
         AWS_ACCOUNT_ID  = '501591550267'
+        AWS_CREDS_ID = 'aws config'
         IMAGE_NAME      = 'springboot-app'
         IMAGE_TAG       = "${env.BUILD_NUMBER}"
 
@@ -23,24 +24,22 @@ pipeline {
     } // <-- environment
 
     stages {
-        stages {
-            stage('Checkout Code') {
-                steps {
-                    // This explicitly pulls your repo down into the workspace
-                    checkout scmGit(
-                            branches: [[name: '*/main']],
-                            extensions: [],
-                            userRemoteConfigs: [[url: 'https://bitbucket1584@bitbucket.org/awseb1584/test-ecs.git']]
-                    )
-                }
+        stage('Checkout Code') {
+            steps {
+                // This explicitly pulls your repo down into the workspace
+                checkout scmGit(
+                        branches: [[name: '*/main']],
+                        extensions: [],
+                        userRemoteConfigs: [[url: 'https://bitbucket1584@bitbucket.org/awseb1584/test-ecs.git']]
+                )
             }
-        }// <-- This is the end of the Checkout Code stage // <-- stage('Checkout') // <-- stage('Checkout')
+        } // <-- This is the end of the Checkout Code stage // <-- stage('Checkout')
 
         stage('Build Docker Image') {
             steps {
                 script {
                     // Dynamically load the local script file
-                    def buildScript = load "deployment/buildDockerImage.groovy"
+                    def buildScript = load "deployment-scripts/buildDockerImage.groovy"
 
                     // Call the method with arguments
                     buildScript.call(env.IMAGE_NAME, env.IMAGE_TAG, env.ECR_REGISTRY)
@@ -51,7 +50,7 @@ pipeline {
         stage('Push to ECR') {
             steps {
                 script {
-                    def pushScript = load "deployment/pushToEcr.groovy"
+                    def pushScript = load "deployment-scripts/pushToEcr.groovy"
                     pushScript.call(env.AWS_REGION, env.ECR_REGISTRY, env.IMAGE_NAME, env.IMAGE_TAG, env.AWS_CREDS_ID)
                 }
             }
@@ -60,7 +59,7 @@ pipeline {
         stage('Deploy to ECS') {
             steps {
                 script {
-                    def deployScript = load "deployment/deployToEcs.groovy"
+                    def deployScript = load "deployment-scripts/deployToEcs.groovy"
                     deployScript.call(
                             env.AWS_REGION,
                             env.ECS_CLUSTER,
@@ -77,7 +76,7 @@ pipeline {
         stage('Post-Deployment Cleanup') {
             steps {
                 script {
-                    def cleanupScript = load "deployment/cleanUpTasksAndTaskDefinitions.groovy"
+                    def cleanupScript = load "deployment-scripts/cleanUpTasksAndTaskDefinitions.groovy"
                     cleanupScript.call(env.AWS_REGION, env.ECS_CLUSTER, env.ECS_TASK_FAMILY, env.AWS_CREDS_ID)
                 }
             }
