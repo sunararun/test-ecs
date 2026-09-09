@@ -13,24 +13,36 @@ def call(String region, String cluster, String service, String taskFamily, Strin
                 env.ECS_TASK_FAMILY   = taskFamily
                 env.ECS_NEW_IMAGE     = "${repositoryUri}:${imageTag}"
 
+                // 1. Fetch the task definition and filter out wrapper fields
                 powershell '''
                     aws ecs describe-task-definition --task-definition $env:ECS_TASK_FAMILY --query taskDefinition --region $env:ECS_REGION > task-def.json
                 '''
 
+                // 2. Process JSON, strip read-only metadata, and bind the clean new image tag
                 powershell '''
                     $taskDef = Get-Content task-def.json -Raw | ConvertFrom-Json
+
+                    # Remove ECS-managed read-only fields
                     $propertiesToRemove = @('taskDefinitionArn', 'revision', 'status', 'requiresAttributes', 'compatibilities', 'registeredAt', 'registeredBy')
                     foreach ($prop in $propertiesToRemove) {
                         $taskDef.PSObject.Properties.Remove($prop)
                     }
-                    $taskDef.containerDefinitions.image = $env:ECS_NEW_IMAGE
+
+                    # FIX: Explicitly target the first container definition in the array [0]
+                    $taskDef.containerDefinitions[0].image = $env:ECS_NEW_IMAGE
+
+                    # Convert back to clean single-line JSON
                     $cleanJson = $taskDef | ConvertTo-Json -Depth 100 -Compress
+
+                    # Write file directly as raw ASCII bytes to eliminate BOM signatures entirely
                     [System.IO.File]::WriteAllText("$pwd\\new-task-def.json", $cleanJson, [System.Text.Encoding]::ASCII)
                 '''
 
+                // AUDIT STEP: Verify that the clean file does not contain "@sha256"
                 echo "--- AUDITING GENERATED TASK DEFINITION ---"
                 powershell '''Get-Content new-task-def.json'''
 
+                // 3. Register the new definition file
                 powershell '''
                     aws ecs register-task-definition --cli-input-json file://new-task-def.json --region $env:ECS_REGION > registered-task.json
                 '''
@@ -42,6 +54,7 @@ def call(String region, String cluster, String service, String taskFamily, Strin
 
                 env.ECS_NEW_REVISION = newRevision
 
+                // 4. Force deployment of the service using the newly generated numeric revision
                 powershell '''
                     aws ecs update-service `
                         --cluster $env:ECS_CLUSTER `
@@ -54,4 +67,4 @@ def call(String region, String cluster, String service, String taskFamily, Strin
         }
     }
 }
-return this // <-- CRUCIAL FIX
+return this
