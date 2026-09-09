@@ -4,13 +4,12 @@ def call(String imageName, String imageTag, String registry) {
         env.BUILD_IMAGE_TAG  = imageTag
         env.BUILD_REGISTRY   = registry
 
+        // Build straight into the ECR tag structure to produce exactly one image
         bat '''
-            docker build -t %BUILD_IMAGE_NAME%:%BUILD_IMAGE_TAG% .
+            docker build -t %BUILD_REGISTRY%/%BUILD_IMAGE_NAME%:%BUILD_IMAGE_TAG% .
         '''
-        bat '''
-            docker tag %BUILD_IMAGE_NAME%:%BUILD_IMAGE_TAG% %BUILD_REGISTRY%/%BUILD_IMAGE_NAME%:%BUILD_IMAGE_TAG%
-        '''
-        echo "Docker image built successfully: ${imageName}:${imageTag}"
+
+        echo "Docker image successfully built with single ECR tag: ${registry}/${imageName}:${imageTag}"
     }
 }
-return this // <-- CRUCIAL FIX
+return this

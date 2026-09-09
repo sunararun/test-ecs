@@ -16,10 +16,11 @@ def call(String region, String registry, String imageName, String imageTag, Stri
             bat '''
                 aws ecr get-login-password --region %ECR_REGION% | docker login --username AWS --password-stdin %ECR_REGISTRY%
             '''
+
             bat '''
                 docker push %ECR_REGISTRY%/%IMAGE_NAME%:%IMAGE_TAG%
             '''
         }
     }
 }
-return this // <-- CRUCIAL FIX
+return this
