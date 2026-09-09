@@ -1,14 +1,9 @@
-// dep/jenkins1.groovy
 def call() {
-    echo "Searching for .env file inside the 'env' directory..."
-
-    // Check path inside the env folder
-    def envExists = fileExists('env/.env')
-
-    if (envExists) {
-        echo "Success: env/.env file found!"
+    echo "Searching for .env file..."
+    if (fileExists('env/.env')) {
+        echo "Success: env/.env found!"
     } else {
-        error "Error: .env file is missing from the 'env/' folder!"
+        error "Error: .env file is missing from the env/ directory!"
     }
 }
 return this
