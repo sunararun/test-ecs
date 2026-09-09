@@ -20,7 +20,8 @@ public class ECSController {
 
     @GetMapping("/getAll")
     public List<String> getAll(){
-        return List.of("Ganesh","Shiv","Shakti","Laxmi","Parvati");
+
+        return List.of("Pooja","Aarti","Aaradhana","Shanti","Prashad");
     }
     @GetMapping("/root/getAll")
     public List<Root> getAllRoot(){
