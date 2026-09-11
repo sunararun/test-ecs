@@ -5,6 +5,8 @@ import com.first.ecs.example.pojo.Root;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ECSController {
     private final RootService rootService;
+    private static final Logger log = LoggerFactory.getLogger(ECSController.class);
 
     @GetMapping("/getAll")
     public List<String> getAll(){
@@ -25,6 +28,7 @@ public class ECSController {
     }
     @GetMapping("/root/getAll")
     public List<Root> getAllRoot(){
+        log.info("Endpoint hit successfully!"); // <-- Traces will appear on this line!
         return rootService.getRoot();
     }
 }
