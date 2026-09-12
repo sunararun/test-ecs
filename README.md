@@ -1,0 +1,3 @@
+java -javaagent:target/agents/splunk-otel-javaagent.jar -Dotel.service.name="my-springboot-app" -Dotel.exporter.otlp.endpoint="https://ingest.au0.observability.splunkcloud.com:443" -Dotel.exporter.otlp.protocol="http/protobuf" -Dotel.exporter.otlp.headers="X-SF-Token=6ZGQghv3ik0YuTjSmyLHww" -Dotel.resource.attributes="deployment.environment=local" -jar target/first-ecs-0.0.1-SNAPSHOT.jar
+
+https://app.au0.observability.splunkcloud.com/#/apm

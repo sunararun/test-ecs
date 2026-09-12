@@ -74,10 +74,50 @@
 			</resource>
 		</resources>
 		<plugins>
+			<!-- 1. Automatically download the Splunk OTel Agent to a local directory -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy-agent</id>
+						<phase>initialize</phase>
+						<goals>
+							<goal>copy</goal>
+						</goals>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>com.splunk</groupId>
+									<artifactId>splunk-otel-javaagent</artifactId>
+									<version>LATEST</version>
+									<type>jar</type>
+									<destFileName>splunk-otel-javaagent.jar</destFileName>
+								</artifactItem>
+							</artifactItems>
+							<outputDirectory>${project.build.directory}/agents</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- 2. Unified Spring Boot Plugin with Repackage Execution Hook -->
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- 3. Compiler and Annotation Processor Setup -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-
 				<executions>
 					<execution>
 						<id>default-compile</id>
@@ -108,19 +148,6 @@
 								</path>
 							</annotationProcessorPaths>
 						</configuration>
-					</execution>
-
-				</executions>
-
-			</plugin>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<goals>
-							<goal>repackage</goal>
-						</goals>
 					</execution>
 				</executions>
 			</plugin>

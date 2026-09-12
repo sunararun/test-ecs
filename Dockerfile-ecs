@@ -1,0 +1,19 @@
+# === Stage 1: Build the application ===
+FROM maven:3.9.6-eclipse-temurin-17 AS build
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# === Stage 2: Run the application (Optimised for Size) ===
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+
+RUN addgroup -S spring && adduser -S spring -G spring
+COPY --from=build /app/target/*.jar ./first-ecs.jar
+COPY --from=build /app/target/agents/splunk-otel-javaagent.jar ./splunk-otel-javaagent.jar
+
+RUN chown -R spring:spring /app
+USER spring:spring
+
+ENTRYPOINT ["java", "-javaagent:/app/splunk-otel-javaagent.jar", "-jar", "first-ecs.jar"]
