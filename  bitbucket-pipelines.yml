@@ -1,0 +1,27 @@
+image: maven:3-eclipse-temurin-21
+
+clone:
+  depth: full              # SonarQube Cloud scanner needs the full history to assign blame and issues properly
+
+definitions:
+  caches:
+    sonar: ~/.sonar/cache  # Caching SonarQube Cloud artifacts will speed up your build
+  steps:
+    - step: &build-test-sonarcloud
+        name: Build, test and analyze on SonarQube Cloud
+        caches:
+          - maven
+          - sonar
+        script:
+          # Appended -Dsonar.token securely matching your saved Bitbucket pipeline variable
+          - mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.token=$SONAR_TOKEN
+        artifacts:
+          - target/**
+
+pipelines:                 
+  branches:
+    main:                # Change 'master' to 'main' if your repository uses main as its default branch
+      - step: *build-test-sonarcloud
+  pull-requests:
+    '**':
+      - step: *build-test-sonarcloud
