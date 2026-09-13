@@ -20,7 +20,7 @@ definitions:
 
 pipelines:                 
   branches:
-    main:                # Change 'master' to 'main' if your repository uses main as its default branch
+    main:                
       - step: *build-test-sonarcloud
   pull-requests:
     '**':
