@@ -13,11 +13,16 @@ definitions:
           - maven
           - sonar
         script:
-          - mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+          # Securely appends token and forces the build to wait and fail if the Quality Gate fails
+          - mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.token=$SONAR_TOKEN -Dsonar.qualitygate.wait=true
         artifacts:
           - target/**
+        # Parses test results and code coverage metrics into Bitbucket UI tabs
+        reports:
+          surefire: 'target/surefire-reports/*.xml'
+          jacoco: 'target/site/jacoco/jacoco.xml'
 
-pipelines:                 # More info here: https://confluence.atlassian.com/bitbucket/configure-bitbucket-pipelines-yml-792298910.html
+pipelines:                 
   branches:
     main:
       - step: *build-test-sonarcloud
