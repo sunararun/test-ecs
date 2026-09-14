@@ -25,8 +25,12 @@ definitions:
     - step: &trigger-jenkins
         name: Trigger Jenkins Build & Deploy
         script:
-          - echo "Triggering Jenkins..."
-          - curl -X POST "https://${JENKINS_USER}:${JENKINS_TOKEN}@${JENKINS_URL}/job/${JENKINS_JOB_NAME}/build"
+          - echo "Triggering Jenkins via ngrok..."
+          # The -H flag bypasses the ngrok free tier splash warning screen entirely
+          - |
+            curl -f -X POST \
+              -H "ngrok-skip-browser-warning: true" \
+              "https://${JENKINS_USER}:${JENKINS_TOKEN}@${JENKINS_URL}/job/${JENKINS_JOB_NAME}/build"
 
 pipelines:
   branches:
