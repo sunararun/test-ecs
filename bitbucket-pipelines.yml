@@ -1,13 +1,11 @@
 image: maven:3-eclipse-temurin-21
 
 clone:
-  depth: full 
-# SonarQube Cloud scanner needs the fullhistory to assign issues properly
+  depth: full
 
 definitions:
   caches:
-    sonar: ~/.sonar/cache 
-# Caching SonarQube Cloud artifacts will speed up your build
+    sonar: ~/.sonar/cache
   steps:
     - step: &build-test-sonarcloud
         name: Build, test and analyze on SonarQube Cloud
@@ -15,19 +13,27 @@ definitions:
           - maven
           - sonar
         script:
-    # Securely appends token and forces the build to wait and fail if the     # Quality Gate fails
           - mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.token=$SONAR_TOKEN -Dsonar.qualitygate.wait=true
         artifacts:
           - target/**
-   # Parses test results and code coverage metrics into Bitbucket UI tabs
         reports:
           surefire: 'target/surefire-reports/*.xml'
           jacoco: 'target/site/jacoco/jacoco.xml'
 
-pipelines:                 
+    - step: &trigger-jenkins
+        name: Trigger Jenkins Build & Deploy
+        script:
+          - echo "Sonar Check Passed! Triggering Jenkins..."
+          # Calls the Jenkins API to start the build. It passes the current Git commit hash so Jenkins builds the exact same code.
+          - |
+            - curl -X POST "https://${JENKINS_USER}:${JENKINS_TOKEN}@${JENKINS_URL}/job/${JENKINS_JOB_NAME}/build"
+
+pipelines:
   branches:
     main:
       - step: *build-test-sonarcloud
+      - step: *trigger-jenkins       # Runs only if Sonar step succeeds
   pull-requests:
     '**':
       - step: *build-test-sonarcloud
+      # Typically, you do not want to deploy Pull Requests, so we omit Jenkins here.
