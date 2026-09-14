@@ -21,13 +21,11 @@ definitions:
         reports:
           surefire: 'target/surefire-reports/*.xml'
           jacoco: 'target/site/jacoco/jacoco.xml'
-
     - step: &trigger-jenkins
         name: Trigger Jenkins Build & Deploy
         script:
           - echo "Triggering Jenkins via ngrok..."
-          # Kept strictly on a single line to prevent backslash parsing errors
-          - curl -f -X POST -H "ngrok-skip-browser-warning:true" "https://${JENKINS_USER}:${JENKINS_TOKEN}@${JENKINS_URL}/job/${JENKINS_JOB_NAME}/build"
+          - curl -f -X POST -H "ngrok-skip-browser-warning:true" -u "${JENKINS_USER}:${JENKINS_TOKEN}" "${JENKINS_URL}job/${JENKINS_JOB_NAME}/build"
 
 pipelines:
   branches:
