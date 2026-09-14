@@ -27,14 +27,13 @@ COPY --from=build /app/target/agents/splunk-otel-javaagent.jar ./splunk-otel-jav
 # --  OTEL_EXPORTER_OTLP_HEADERS="X-SF-Token=6ZGQghv3ik0YuTjSmyLHww" \
 # for local deployment place it after  OTEL_EXPORTER_OTLP_ENDPOINT
 ENV OTEL_SERVICE_NAME="my-springboot-app" \
-    OTEL_METRICS_EXPORTER="otlp" \
+    OTEL_METRICS_EXPORTER="none" \
     OTEL_LOGS_EXPORTER="none" \
-    OTEL_EXPORTER_OTLP_PROTOCOL="grpc" \
-    OTEL_EXPORTER_OTLP_ENDPOINT="https://ingest.au0.observability.splunkcloud.com:443" \
-
+    OTEL_TRACES_EXPORTER="none" \
+    OTEL_SDK_DISABLED="true" \
     OTEL_RESOURCE_ATTRIBUTES="deployment.environment=local,sf_environment=local"
-
 # Change ownership of the copied files to the non-root user before switching contexts
+
 RUN chown -R spring:spring /app
 
 USER spring:spring
