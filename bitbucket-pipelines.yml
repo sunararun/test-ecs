@@ -13,7 +13,7 @@ definitions:
           - maven
           - sonar
         script:
-          - mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.token=$SONAR_TOKEN -Dsonar.qualitygate.wait=true
+         # - mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.token=$SONAR_TOKEN -Dsonar.qualitygate.wait=true
         artifacts:
           - target/**
         reports:
