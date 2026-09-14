@@ -13,25 +13,31 @@ definitions:
           - maven
           - sonar
         script:
-          # Commented out the maven build to bypass the JaCoCo test failures
-          - echo "Bypassing Maven build and Sonar check for testing..."
-          #- mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.token=$SONAR_TOKEN -Dsonar.qualitygate.wait=true
+          - mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.token=$SONAR_TOKEN -Dsonar.qualitygate.wait=true
         artifacts:
           - target/**
         reports:
           surefire: 'target/surefire-reports/*.xml'
           jacoco: 'target/site/jacoco/jacoco.xml'
-    - step: &trigger-jenkins
-        name: Trigger Jenkins Build & Deploy
+
+    - step: &trigger-jenkins-main
+        name: Trigger Jenkins MAIN Build
         script:
-          - echo "Triggering Jenkins via ngrok..."
-          - curl -f -X POST -H "ngrok-skip-browser-warning:true" -u "${JENKINS_USER}:${JENKINS_TOKEN}" "${JENKINS_URL}job/${JENKINS_JOB_NAME}/build"
+          - CLEAN_URL=$(echo "${JENKINS_URL}" | sed 's/\/$//')
+          - curl -f -X POST -H "ngrok-skip-browser-warning:true" -u "${JENKINS_USER}:${JENKINS_TOKEN}" "${CLEAN_URL}/job/${JENKINS_JOB_NAME}/build"
+
+    - step: &trigger-jenkins-qa
+        name: Trigger Jenkins QA Build
+        script:
+          - CLEAN_URL=$(echo "${JENKINS_URL}" | sed 's/\/$//')
+          # Uses the QA specific job name variable
+          - curl -f -X POST -H "ngrok-skip-browser-warning:true" -u "${JENKINS_USER}:${JENKINS_TOKEN}" "${CLEAN_URL}/job/${JENKINS_QA_JOB_NAME}/build"
 
 pipelines:
   branches:
     main:
       - step: *build-test-sonarcloud
-      - step: *trigger-jenkins
-  pull-requests:
-    '**':
-      - step: *build-test-sonarcloud
+      - step: *trigger-jenkins-main
+
+    QA:
+      - step: *trigger-jenkins-qa
