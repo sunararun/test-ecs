@@ -21,19 +21,20 @@ COPY --from=build /app/target/*.jar ./first-ecs.jar
 # Copy the agent jar pulled by your pom.xml maven-dependency-plugin
 COPY --from=build /app/target/agents/splunk-otel-javaagent.jar ./splunk-otel-javaagent.jar
 
-# --- Splunk & OpenTelemetry Configurations ---
-# --- Splunk & OpenTelemetry Configurations ---
-# --- Splunk & OpenTelemetry Configurations ---
-# --  OTEL_EXPORTER_OTLP_HEADERS="X-SF-Token=6ZGQghv3ik0YuTjSmyLHww" \
-# for local deployment place it after  OTEL_EXPORTER_OTLP_ENDPOINT
+# --- Splunk & OpenTelemetry Configuration (AWS ECS defaults) ---
+# These are defaults baked into the image for ECS/Fargate deployment, where the
+# ADOT collector sidecar listens on localhost:4318 (OTLP/HTTP) within the same task.
+# Override any of these via ECS task definition environment variables if deploying
+# to a different environment (e.g. local Docker, a different collector endpoint).
 ENV OTEL_SERVICE_NAME="my-springboot-app" \
+    OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318" \
+    OTEL_TRACES_EXPORTER="otlp" \
     OTEL_METRICS_EXPORTER="none" \
     OTEL_LOGS_EXPORTER="none" \
-    OTEL_TRACES_EXPORTER="none" \
-    OTEL_SDK_DISABLED="true" \
-    OTEL_RESOURCE_ATTRIBUTES="deployment.environment=local,sf_environment=local"
-# Change ownership of the copied files to the non-root user before switching contexts
+    OTEL_SDK_DISABLED="false" \
+    OTEL_RESOURCE_ATTRIBUTES="deployment.environment=aws-ecs,sf_environment=aws-ecs"
 
+# Change ownership of the copied files to the non-root user before switching contexts
 RUN chown -R spring:spring /app
 
 USER spring:spring
