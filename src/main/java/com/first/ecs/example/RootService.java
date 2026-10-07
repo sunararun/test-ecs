@@ -18,15 +18,19 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RootService {
     private final RestTemplate restTemplate;
-    private final  AppConfiguration appConfiguration;
+    private final AppConfiguration appConfiguration;
+
     public List<Root> getRoot() {
         ResponseEntity<List<Root>> response = restTemplate.exchange(
                 appConfiguration.getServiceUrl(),
                 HttpMethod.GET,
                 null,
-                new ParameterizedTypeReference<List<Root>>() {}
+                new ParameterizedTypeReference<List<Root>>() {
+                }
         );
 
         return response.getBody();
     }
+
+
 }
