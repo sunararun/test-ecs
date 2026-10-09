@@ -31,4 +31,6 @@ public class ECSController {
         openTelemetryConfig.doHeavyWork("tenant");
         return rootService.getRoot();
     }
+    @GetMapping("/")
+    public String root() { return "first-ecs-jar-app is running"; }
 }
