@@ -1,0 +1,22 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"cloudwatch:GetMetricData",
+				"cloudwatch:GetMetricStatistics",
+				"cloudwatch:ListMetrics",
+				"elasticbeanstalk:Describe*",
+				"elasticbeanstalk:List*",
+				"ec2:Describe*",
+				"autoscaling:Describe*",
+				"elasticloadbalancing:Describe*",
+				"tag:GetResources",
+				"organizations:DescribeOrganization",
+				"iam:ListAccountAliases"
+			],
+			"Resource": "*"
+		}
+	]
+}
